@@ -25,6 +25,7 @@ namespace CarRentalSystem.Notifications
                     JwtConfiguration.BearerEvents)
                 .AddMessaging(
                     this.Configuration,
+                    false,
                     typeof(CarAdCreatedConsumer))
                 .AddSignalR();
 

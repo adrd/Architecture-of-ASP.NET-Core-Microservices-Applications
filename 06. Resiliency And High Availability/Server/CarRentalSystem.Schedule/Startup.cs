@@ -22,6 +22,7 @@ namespace CarRentalSystem.Schedule
                 .AddTransient<IRentedCarService, RentedCarService>()
                 .AddMessaging(
                     this.Configuration,
+                    false,
                     typeof(CarAdUpdatedConsumer));
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)

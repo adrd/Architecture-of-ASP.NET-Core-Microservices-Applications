@@ -115,9 +115,14 @@
 
             healthChecks
                 .AddSqlServer(configuration.GetDefaultConnectionString());
-            
+
+            // localhost configuration
             healthChecks
-                .AddRabbitMQ(rabbitConnectionString: "amqp://rabbitmq:rabbitmq@rabbitmq/");
+                .AddRabbitMQ(rabbitConnectionString: "amqp://@localhost/");
+
+            // docker configuration
+            //healthChecks
+            //    .AddRabbitMQ(rabbitConnectionString: "amqp://rabbitmq:rabbitmq@rabbitmq/");
 
             return services;
         }
@@ -125,6 +130,7 @@
         public static IServiceCollection AddMessaging(
             this IServiceCollection services,
             IConfiguration configuration,
+            bool usePolling = true,
             params Type[] consumers)
         {
             services
@@ -134,11 +140,15 @@
 
                     mt.AddBus(context => Bus.Factory.CreateUsingRabbitMq(rmq =>
                     {
-                        rmq.Host("rabbitmq", host =>
-                        {
-                            host.Username("rabbitmq");
-                            host.Password("rabbitmq");
-                        });
+                        // localhost configuration
+                        rmq.Host("localhost");
+
+                        // docker configuration
+                        //rmq.Host("rabbitmq", host =>
+                        //{
+                        //    host.Username("rabbitmq");
+                        //    host.Password("rabbitmq");
+                        //});
 
                         rmq.UseHealthCheck(context);
 
@@ -153,16 +163,19 @@
                 })
                 .AddMassTransitHostedService();
 
-            services
-                .AddHangfire(config => config
-                    .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-                    .UseSimpleAssemblyNameTypeSerializer()
-                    .UseRecommendedSerializerSettings()
-                    .UseSqlServerStorage(configuration.GetDefaultConnectionString()));
+            if (usePolling)
+            {
+                services
+                    .AddHangfire(config => config
+                        .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+                        .UseSimpleAssemblyNameTypeSerializer()
+                        .UseRecommendedSerializerSettings()
+                        .UseSqlServerStorage(configuration.GetDefaultConnectionString()));
 
-            services.AddHangfireServer();
+                services.AddHangfireServer();
 
-            services.AddHostedService<MessagesHostedService>();
+                services.AddHostedService<MessagesHostedService>();
+            }
 
             return services;
         }

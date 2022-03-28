@@ -1,5 +1,6 @@
 ﻿namespace CarRentalSystem.Messages
 {
+    using System;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -8,20 +9,23 @@
     using MassTransit;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.DependencyInjection;
 
     public class MessagesHostedService : IHostedService
     {
         private readonly IRecurringJobManager recurringJob;
-        private readonly DbContext data;
+        //private readonly DbContext data;
+        private readonly IServiceProvider serviceProvider;
         private readonly IBus publisher;
 
         public MessagesHostedService(
-            IRecurringJobManager recurringJob, 
-            DbContext data, 
+            IRecurringJobManager recurringJob,
+            IServiceProvider serviceProvider, 
             IBus publisher)
         {
             this.recurringJob = recurringJob;
-            this.data = data;
+            //this.data = data;
+            this.serviceProvider = serviceProvider;
             this.publisher = publisher;
         }
 
@@ -40,7 +44,12 @@
 
         public void ProcessPendingMessages()
         {
-            var messages = this.data
+            using var data = this.serviceProvider
+                .CreateScope()
+                .ServiceProvider
+                .GetService<DbContext>();
+
+            var messages = data
                 .Set<Message>()
                 .Where(m => !m.Published)
                 .OrderBy(m => m.Id)
@@ -55,7 +64,8 @@
 
                 message.MarkAsPublished();
 
-                this.data.SaveChanges();
+                //this.data.SaveChanges();
+                data.SaveChanges();
             }
         }
     }
